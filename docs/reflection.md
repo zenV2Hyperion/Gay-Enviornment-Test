@@ -1,420 +1,198 @@
-\# getrendersteppedlist
+# getrendersteppedlist
 
-
-
-Returns a table of every callback that's bound using `BindToRenderStep`.
-
-
+`Global`
 
 ```lua
-
 function getrendersteppedlist(): { function }
-
 ```
 
+Returns a **table** of every callback that's bound using `BindToRenderStep`.
 
+### Example
 
-\## Example
-
-
-
-This script will print every callback that's bound to 'RenderStepped'.
-
-
+This script will print every callback that's bound to **RenderStepped**.
 
 ```lua
-
 local connections = getrendersteppedlist()
 
-
-
-for \_, callback in connections do
-
-&#x20;   print("Function:", callback.Function)
-
-&#x20;   print("Thread:", callback.Thread)
-
-&#x20;   print("Priority:", callback.Priority)
-
-&#x20;   print("Name:", callback.Name)
-
+for _, callback in connections do
+    print("Function:", callback.Function)
+    print("Thread:", callback.Thread)
+    print("Priority:", callback.Priority)
+    print("Name:", callback.Name)
 end
-
 ```
 
+---
 
+# getbspval
 
-\---
-
-
-
-\# getbspval
-
-
-
-Reads a BinaryString property's value. Useful for reading conventionally unreadable BinaryString properties such as `Terrain.SmoothGrid`, `PartOperation.PhysicsData`, `BinaryStringValue.Value`, and so on.
-
-
+`Global`
 
 ```lua
-
 function getbspval(instance: Instance, property: string, base64: boolean): string
-
 ```
 
+Reads a **BinaryString** property's value. Useful for reading conventionally unreadable BinaryString properties such as `Terrain.SmoothGrid`, `PartOperation.PhysicsData`, `BinaryStringValue.Value`, and so on.
 
+### Parameters
 
-\## Parameters
+ * `instance` - The Instance that contains the BinaryString's value.
+ * `property` - The name of the property read.
+ * `base64` - Boolean indicating whether the BinaryString's value is Base64 encoded.
 
-
-
-\### instance
-
-`Instance` (required)
-
-
-
-The Instance that contains the BinaryString's value.
-
-
-
-\### property
-
-`string` (required)
-
-
-
-The name of the property read.
-
-
-
-\### base64
-
-`boolean`
-
-
-
-Boolean indicating whether the BinaryString's value is Base64 encoded.
-
-
-
-\## Example
-
-
+### Example
 
 ```lua
-
 local result = getbspval(workspace.Terrain, "SmoothGrid", true)
-
 print(result) --> AQU= (Example output)
-
 ```
 
+---
 
+# getpcd
 
-\---
-
-
-
-\# getpcd
-
-
-
-Returns a 16-byte hash and binary data corresponding to TriangleMeshPart's `PhysicalConfigData` property.
-
-
+`Global`
 
 ```lua
-
 function getpcd(trianglemeshpart: Instance): string, string
-
 ```
 
+Returns a **16-byte hash** and **binary data** corresponding to TriangleMeshPart's `PhysicalConfigData` property.
 
+### Parameters
 
-\## Parameters
+ * `trianglemeshpart` - The Instance that contains the binary data.
 
+### Aliases
 
+ * `getpcdprop`
 
-\### trianglemeshpart
-
-`Instance` (required)
-
-
-
-The Instance that contains the binary data.
-
-
-
-\*\*Alias:\*\* `getpcdprop`
-
-
-
-\## Example
-
-
+### Example
 
 This example prints the hash, and the BinaryData.
 
-
-
 ```lua
-
 print(getpcd(Instance.new("UnionOperation")))
-
 ```
 
+---
 
+# getproximitypromptduration
 
-\---
-
-
-
-\# getproximitypromptduration
-
-
-
-Returns the value of a proximity prompt's duration.
-
-
+`Global`
 
 ```lua
-
 function getproximitypromptduration(proximityprompt: ProximityPrompt): number
-
 ```
 
+Returns the value of a proximity prompt's **duration**.
 
+### Parameters
 
-\## Parameters
+ * `proximityprompt` - The ProximityPrompt that contains the duration.
 
-
-
-\### proximityprompt
-
-`ProximityPrompt` (required)
-
-
-
-The ProximityPrompt that contains the duration.
-
-
-
-\## Example
-
-
+### Example
 
 This script will print the duration of a proximity prompt.
 
-
-
 ```lua
-
 local proximityprompt = Instance.new("ProximityPrompt")
-
 proximityprompt.HoldDuration = 3
 
-
-
 local duration = getproximitypromptduration(proximityprompt)
-
 print(duration)
-
 ```
 
+---
 
+# setproximitypromptduration
 
-\---
-
-
-
-\# setproximitypromptduration
-
-
-
-Sets the value of a proximity prompt's duration.
-
-
+`Global`
 
 ```lua
-
 function setproximitypromptduration(proximityprompt: ProximityPrompt, duration: number): ()
-
 ```
 
+Sets the value of a proximity prompt's **duration**.
 
+### Parameters
 
-\## Parameters
+ * `proximityprompt` - The ProximityPrompt that contains the duration.
+ * `duration` - The new duration of the ProximityPrompt.
 
-
-
-\### proximityprompt
-
-`ProximityPrompt` (required)
-
-
-
-The ProximityPrompt that contains the duration.
-
-
-
-\### duration
-
-`number` (required)
-
-
-
-The new duration of the ProximityPrompt.
-
-
-
-\## Example
-
-
+### Example
 
 ```lua
-
 local proximityprompt = Instance.new("ProximityPrompt")
-
 setproximitypromptduration(proximityprompt, 99)
 
-
-
 local duration = getproximitypromptduration(proximityprompt)
-
 print(duration) --> 99
-
 ```
 
+---
 
+# getsimulationradius
 
-\---
-
-
-
-\# getsimulationradius
-
-
-
-Returns the simulation radius of the LocalPlayer.
-
-
+`Global`
 
 ```lua
-
 function getsimulationradius(): number
-
 ```
 
+Returns the **simulation radius** of the LocalPlayer.
 
-
-\## Example
-
-
+### Example
 
 ```lua
-
 print(getsimulationradius()) --> 1000
-
 setsimulationradius(2000)
-
 print(getsimulationradius()) --> 2000
-
 ```
 
+---
 
+# setsimulationradius
 
-\---
-
-
-
-\# setsimulationradius
-
-
-
-Sets the simulation radius of the LocalPlayer.
-
-
+`Global`
 
 ```lua
-
 function setsimulationradius(simulationradius: number): ()
-
 ```
 
+Sets the **simulation radius** of the LocalPlayer.
 
+### Parameters
 
-\## Parameters
+ * `simulationradius` - The LocalPlayer's new simulation radius.
 
-
-
-\### simulationradius
-
-`number` (required)
-
-
-
-The LocalPlayer's new simulation radius.
-
-
-
-\## Example
-
-
+### Example
 
 ```lua
-
 setsimulationradius(999)
-
 print(getsimulationradius()) --> 999
-
 ```
 
+---
 
+# isnetworkowner
 
-\---
-
-
-
-\# isnetworkowner
-
-
-
-Returns boolean indicating whether the LocalPlayer is the network owner of a given instance.
-
-
+`Global`
 
 ```lua
-
 function isnetworkowner(instance: Instance): boolean
-
 ```
 
+Returns a boolean indicating whether the LocalPlayer is the **network owner** of a given instance.
 
+### Parameters
 
-\## Parameters
+ * `instance` - The Instance that the user has provided.
 
-
-
-\### instance
-
-`Instance` (required)
-
-
-
-The Instance that the user has provided.
-
-
-
-\## Example
-
-
+### Example
 
 ```lua
-
 local part = Instance.new("Part")
-
 print(isnetworkowner(part))
-
 ```
-
