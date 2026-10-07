@@ -1,216 +1,347 @@
-local passes, fails, undefined = 0, 0, 0
-local running = 0
-
-local function getGlobal(path)
-	local value = getfenv(0)
-
-	while value ~= nil and path ~= "" do
-		local name, nextValue = string.match(path, "^([^.]+)%.?(.*)$")
-		value = value[name]
-		path = nextValue
-	end
-
-	return value
+local function resolve_environment(environment)
+    return environment or (getgenv and getgenv()) or _G
 end
 
-local function test(name, aliases, callback)
-	running += 1
-
-	task.spawn(function()
-		if not callback then
-			print("⏺️ " .. name)
-		elseif not getGlobal(name) then
-			fails += 1
-			warn("⛔ " .. name)
-		else
-			local success, message = pcall(callback)
-	
-			if success then
-				passes += 1
-				print("✅ " .. name .. (message and " • " .. message or ""))
-			else
-				fails += 1
-				warn("⛔ " .. name .. " failed: " .. message)
-			end
-		end
-	
-		local undefinedAliases = {}
-	
-		for _, alias in ipairs(aliases) do
-			if getGlobal(alias) == nil then
-				table.insert(undefinedAliases, alias)
-			end
-		end
-	
-		if #undefinedAliases > 0 then
-			undefined += 1
-			warn("⚠️ " .. table.concat(undefinedAliases, ", "))
-		end
-
-		running -= 1
-	end)
+local function fail_test(captures, feature, detail)
+    captures = captures or {}
+    local record = captures.record_result
+    if record then record(false, feature, detail) end
+    captures.shared_test_failed[1] = true
+    return false
 end
 
-print("\n")
+local function safe_destroy(object)
+    if object and object.Destroy then pcall(function() object:Destroy() end) end
+end
 
-print("Gay Environment Check")
-print("✅ - Pass, ⛔ - Fail, ⏺️ - No test, ⚠️ - Missing aliases\n")
+local function test_debug_getsafeenv(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-task.defer(function()
-	repeat task.wait() until running == 0
+    local safeenv = environment.debug.getsafeenv()
+    if type(safeenv) ~= "boolean" then
+        return fail_test(captures, "debug.getsafeenv", "Did not return a boolean value")
+    end
 
-	local rate = math.round(passes / (passes + fails) * 100)
-	local outOf = passes .. " out of " .. (passes + fails)
+    local function testFunc() return true end
+    if type(environment.debug.getsafeenv(testFunc)) ~= "boolean" then
+        fail_test(captures, "debug.getsafeenv", "Did not return a boolean value for a function")
+    end
 
-	print("\n")
+    if type(environment.debug.getsafeenv({})) ~= "boolean" then
+        fail_test(captures, "debug.getsafeenv", "Did not return a boolean value for a table")
+    end
 
-	print("Gay Summary")
-	print("✅ Tested with a " .. rate .. "% gay success rate (" .. outOf .. ")")
-	print("⛔ " .. fails .. " gay tests failed")
-	print("⚠️ " .. undefined .. " gay globals are missing aliases")
-end)
+    local thread = coroutine.create(function() end)
+    if type(environment.debug.getsafeenv(thread)) ~= "boolean" then
+        fail_test(captures, "debug.getsafeenv", "Did not return a boolean value for a thread")
+    end
 
-test("debug.getsafeenv", {"debug.isuntouched"}, function()
-	local safeenv = debug.getsafeenv()
-	assert(type(safeenv) == "boolean", "Did not return a gay boolean value")
+    if type(environment.debug.isuntouched()) ~= "boolean" then
+        fail_test(captures, "debug.getsafeenv", "Alias did not return a boolean value")
+    end
+end
 
-	local function testFunc()
-		return true
-	end
-	local funcSafeenv = debug.getsafeenv(testFunc)
-	assert(type(funcSafeenv) == "boolean", "Did not return a gay boolean value for a function")
+local function test_debug_setsafeenv(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-	local testTable = {}
-	local tableSafeenv = debug.getsafeenv(testTable)
-	assert(type(tableSafeenv) == "boolean", "Did not return a gay boolean value for a table")
+    local original = environment.debug.getsafeenv()
+    environment.debug.setsafeenv(true)
+    if environment.debug.getsafeenv() ~= true then
+        fail_test(captures, "debug.setsafeenv", "debug.setsafeenv(true) did not set safeenv to true")
+    end
+    environment.debug.setsafeenv(false)
+    if environment.debug.getsafeenv() ~= false then
+        fail_test(captures, "debug.setsafeenv", "debug.setsafeenv(false) did not set safeenv to false")
+    end
+    environment.debug.setsafeenv(original)
+    if environment.debug.getsafeenv() ~= original then
+        fail_test(captures, "debug.setsafeenv", "Failed to restore original safeenv state")
+    end
 
-	local thread = coroutine.create(function() end)
-	local threadSafeenv = debug.getsafeenv(thread)
-	assert(type(threadSafeenv) == "boolean", "Did not return a gay boolean value for a thread")
+    local function testFunc() return true end
+    environment.debug.setsafeenv(testFunc, true)
+    if environment.debug.getsafeenv(testFunc) ~= true then
+        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to true for a function")
+    end
+    environment.debug.setsafeenv(testFunc, false)
+    if environment.debug.getsafeenv(testFunc) ~= false then
+        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to false for a function")
+    end
 
-	local aliasSafeenv = debug.isuntouched()
-	assert(type(aliasSafeenv) == "boolean", "Gay alias did not return a boolean value")
-end)
+    local testTable = {}
+    environment.debug.setsafeenv(testTable, true)
+    if environment.debug.getsafeenv(testTable) ~= true then
+        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to true for a table")
+    end
+    environment.debug.setsafeenv(testTable, false)
+    if environment.debug.getsafeenv(testTable) ~= false then
+        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to false for a table")
+    end
 
-test("debug.setsafeenv", {"debug.setuntouched"}, function()
-	local original = debug.getsafeenv()
-	debug.setsafeenv(true)
-	local afterTrue = debug.getsafeenv()
-	debug.setsafeenv(false)
-	local afterFalse = debug.getsafeenv()
-	debug.setsafeenv(original)
+    local thread = coroutine.create(function() end)
+    environment.debug.setsafeenv(thread, true)
+    if environment.debug.getsafeenv(thread) ~= true then
+        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to true for a thread")
+    end
+    environment.debug.setsafeenv(thread, false)
+    if environment.debug.getsafeenv(thread) ~= false then
+        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to false for a thread")
+    end
 
-	assert(afterTrue == true, "Gay debug.setsafeenv(true) did not set safeenv to true")
-	assert(afterFalse == false, "Gay debug.setsafeenv(false) did not set safeenv to false")
-	assert(debug.getsafeenv() == original, "Failed to restore gay original safeenv state")
+    environment.debug.setuntouched(true)
+    if environment.debug.getsafeenv() ~= true then
+        fail_test(captures, "debug.setsafeenv", "debug.setuntouched alias did not work")
+    end
+    environment.debug.setuntouched(false)
+    if environment.debug.getsafeenv() ~= false then
+        fail_test(captures, "debug.setsafeenv", "debug.setuntouched alias did not work")
+    end
+    environment.debug.setuntouched(original)
+end
 
-	local function testFunc()
-		return true
-	end
-	debug.setsafeenv(testFunc, true)
-	assert(debug.getsafeenv(testFunc) == true, "Did not set gay safeenv to true for a function")
-	debug.setsafeenv(testFunc, false)
-	assert(debug.getsafeenv(testFunc) == false, "Did not set gay safeenv to false for a function")
+local function test_getrendersteppedlist(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-	local testTable = {}
-	debug.setsafeenv(testTable, true)
-	assert(debug.getsafeenv(testTable) == true, "Did not set gay safeenv to true for a table")
-	debug.setsafeenv(testTable, false)
-	assert(debug.getsafeenv(testTable) == false, "Did not set gay safeenv to false for a table")
+    local callbacks = environment.getrendersteppedlist()
+    if type(callbacks) ~= "table" then
+        return fail_test(captures, "getrendersteppedlist", "Did not return a table")
+    end
 
-	local thread = coroutine.create(function() end)
-	debug.setsafeenv(thread, true)
-	assert(debug.getsafeenv(thread) == true, "Did not set gay safeenv to true for a thread")
-	debug.setsafeenv(thread, false)
-	assert(debug.getsafeenv(thread) == false, "Did not set gay safeenv to false for a thread")
+    local name = "Gay_Test_" .. tostring(math.random(1, 1000000))
+    local runService = environment.game:GetService("RunService")
+    local bindName = name
 
-	debug.setuntouched(true)
-	assert(debug.getsafeenv() == true, "Gay debug.setuntouched alias did not work")
-	debug.setuntouched(false)
-	assert(debug.getsafeenv() == false, "Gay debug.setuntouched alias did not work")
-	debug.setuntouched(original)
-end)
+    runService:BindToRenderStep(bindName, environment.Enum.RenderPriority.Camera.Value, function() end)
 
-test("getrendersteppedlist", {}, function()
-	local callbacks = getrendersteppedlist()
-	assert(type(callbacks) == "table", "Did not return a gay table")
+    local updatedCallbacks = environment.getrendersteppedlist()
+    local found = false
 
-	local name = "Gay_Test_" .. tostring(math.random(1, 1000000))
-	local runService = game:GetService("RunService")
-	local bindName = name
+    for _, callback in ipairs(updatedCallbacks) do
+        if callback.Name == bindName then
+            found = true
+            if type(callback.Function) ~= "function" then
+                fail_test(captures, "getrendersteppedlist", "Function field is not a function")
+            end
+            if type(callback.Thread) ~= "thread" then
+                fail_test(captures, "getrendersteppedlist", "Thread field is not a thread")
+            end
+            if type(callback.Priority) ~= "number" then
+                fail_test(captures, "getrendersteppedlist", "Priority field is not a number")
+            end
+            if type(callback.Name) ~= "string" then
+                fail_test(captures, "getrendersteppedlist", "Name field is not a string")
+            end
+            break
+        end
+    end
 
-	runService:BindToRenderStep(bindName, Enum.RenderPriority.Camera.Value, function() end)
+    runService:UnbindFromRenderStep(bindName)
+    if not found then
+        fail_test(captures, "getrendersteppedlist", "Did not return the bound render step callback")
+    end
+end
 
-	local updatedCallbacks = getrendersteppedlist()
-	local found = false
+local function test_getbspval(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-	for _, callback in ipairs(updatedCallbacks) do
-		if callback.Name == bindName then
-			found = true
-			assert(type(callback.Function) == "function", "Gay Function field is not a function")
-			assert(type(callback.Thread) == "thread", "Gay Thread field is not a thread")
-			assert(type(callback.Priority) == "number", "Gay Priority field is not a number")
-			assert(type(callback.Name) == "string", "Gay Name field is not a string")
-			break
-		end
-	end
+    local terrain = environment.workspace.Terrain
+    local result = environment.getbspval(terrain, "SmoothGrid", true)
+    if type(result) ~= "string" then
+        fail_test(captures, "getbspval", "Did not return a string")
+    end
 
-	runService:UnbindFromRenderStep(bindName)
-	assert(found, "Did not return the gay bound render step callback")
-end)
+    local binaryStringValue = environment.Instance.new("BinaryStringValue")
+    binaryStringValue.Value = "test"
+    local rawResult = environment.getbspval(binaryStringValue, "Value", false)
+    if type(rawResult) ~= "string" then
+        fail_test(captures, "getbspval", "Did not return a string for BinaryStringValue")
+    end
+end
 
-test("getbspval", {}, function()
-	local terrain = workspace.Terrain
-	local result = getbspval(terrain, "SmoothGrid", true)
-	assert(type(result) == "string", "Did not return a gay string")
+local function test_getpcd(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-	local binaryStringValue = Instance.new("BinaryStringValue")
-	binaryStringValue.Value = "test"
-	local rawResult = getbspval(binaryStringValue, "Value", false)
-	assert(type(rawResult) == "string", "Did not return a gay string for BinaryStringValue")
-end)
+    local union = environment.Instance.new("UnionOperation")
+    local hash, binaryData = environment.getpcd(union)
+    if type(hash) ~= "string" then
+        fail_test(captures, "getpcd", "Did not return a string for the hash")
+    end
+    if type(binaryData) ~= "string" then
+        fail_test(captures, "getpcd", "Did not return a string for the binary data")
+    end
 
-test("getpcd", {"getpcdprop"}, function()
-	local union = Instance.new("UnionOperation")
-	local hash, binaryData = getpcd(union)
-	assert(type(hash) == "string", "Did not return a gay string for the hash")
-	assert(type(binaryData) == "string", "Did not return a gay string for the binary data")
+    local aliasHash, aliasData = environment.getpcdprop(union)
+    if type(aliasHash) ~= "string" then
+        fail_test(captures, "getpcd", "Alias did not return a string for the hash")
+    end
+    if type(aliasData) ~= "string" then
+        fail_test(captures, "getpcd", "Alias did not return a string for the binary data")
+    end
+end
 
-	local aliasHash, aliasData = getpcdprop(union)
-	assert(type(aliasHash) == "string", "Gay alias did not return a string for the hash")
-	assert(type(aliasData) == "string", "Gay alias did not return a string for the binary data")
-end)
+local function test_getproximitypromptduration(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-test("getproximitypromptduration", {}, function()
-	local proximityPrompt = Instance.new("ProximityPrompt")
-	proximityPrompt.HoldDuration = 3
-	local duration = getproximitypromptduration(proximityPrompt)
-	assert(type(duration) == "number", "Did not return a gay number")
-	assert(duration == 3, "Did not return the correct gay duration (expected 3, got " .. tostring(duration) .. ")")
-end)
+    local proximityPrompt = environment.Instance.new("ProximityPrompt")
+    proximityPrompt.HoldDuration = 3
+    local duration = environment.getproximitypromptduration(proximityPrompt)
+    if type(duration) ~= "number" then
+        fail_test(captures, "getproximitypromptduration", "Did not return a number")
+    end
+    if duration ~= 3 then
+        fail_test(captures, "getproximitypromptduration",
+            "Did not return the correct duration (expected 3, got " .. tostring(duration) .. ")")
+    end
+end
 
-test("getsimulationradius", {}, function()
-	local radius = getsimulationradius()
-	assert(type(radius) == "number", "Did not return a gay number")
-end)
+local function test_getsimulationradius(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-test("isnetworkowner", {}, function()
-	local part = Instance.new("Part")
-	local result = isnetworkowner(part)
-	assert(type(result) == "boolean", "Did not return a gay boolean")
-end)
+    local radius = environment.getsimulationradius()
+    if type(radius) ~= "number" then
+        fail_test(captures, "getsimulationradius", "Did not return a number")
+    end
+end
 
-test("setproximitypromptduration", {}, function()
-	local proximityPrompt = Instance.new("ProximityPrompt")
-	setproximitypromptduration(proximityPrompt, 99)
-	local duration = getproximitypromptduration(proximityPrompt)
-	assert(duration == 99, "Did not set the correct gay duration (expected 99, got " .. tostring(duration) .. ")")
-end)
+local function test_isnetworkowner(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
 
-test("setsimulationradius", {}, function()
-	local original = getsimulationradius()
-	setsimulationradius(999)
-	assert(getsimulationradius() == 999, "Did not set the gay simulation radius to 999")
-	setsimulationradius(original)
-	assert(getsimulationradius() == original, "Did not restore the original gay simulation radius")
-end)
+    local part = environment.Instance.new("Part")
+    local result = environment.isnetworkowner(part)
+    if type(result) ~= "boolean" then
+        fail_test(captures, "isnetworkowner", "Did not return a boolean")
+    end
+    safe_destroy(part)
+end
+
+local function test_setproximitypromptduration(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    local proximityPrompt = environment.Instance.new("ProximityPrompt")
+    environment.setproximitypromptduration(proximityPrompt, 99)
+    local duration = environment.getproximitypromptduration(proximityPrompt)
+    if duration ~= 99 then
+        fail_test(captures, "setproximitypromptduration",
+            "Did not set the correct duration (expected 99, got " .. tostring(duration) .. ")")
+    end
+end
+
+local function test_setsimulationradius(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    local original = environment.getsimulationradius()
+    environment.setsimulationradius(999)
+    if environment.getsimulationradius() ~= 999 then
+        fail_test(captures, "setsimulationradius", "Did not set the simulation radius to 999")
+    end
+    environment.setsimulationradius(original)
+    if environment.getsimulationradius() ~= original then
+        fail_test(captures, "setsimulationradius", "Did not restore the original simulation radius")
+    end
+end
+
+local TEST_PLAN = {
+    { test = "debug.getsafeenv", run = test_debug_getsafeenv, features = { "debug.getsafeenv", "debug.isuntouched" } },
+    { test = "debug.setsafeenv", run = test_debug_setsafeenv, features = { "debug.setsafeenv", "debug.setuntouched" } },
+    { test = "getrendersteppedlist", run = test_getrendersteppedlist },
+    { test = "getbspval", run = test_getbspval },
+    { test = "getpcd", run = test_getpcd, features = { "getpcd", "getpcdprop" } },
+    { test = "getproximitypromptduration", run = test_getproximitypromptduration },
+    { test = "getsimulationradius", run = test_getsimulationradius },
+    { test = "isnetworkowner", run = test_isnetworkowner },
+    { test = "setproximitypromptduration", run = test_setproximitypromptduration },
+    { test = "setsimulationradius", run = test_setsimulationradius },
+}
+
+local function copy_array(values)
+    local result = {}
+    for index, value in ipairs(values or {}) do result[index] = value end
+    return result
+end
+
+local function run_gay_suite(environment, options)
+    environment = resolve_environment(environment)
+    options = options or {}
+
+    local output = environment.print or print
+    local warning = environment.warn or warn
+    local clock = environment.tick or tick
+    local started_at = clock()
+
+    output("Testing gay env")
+
+    local results_by_name = {}
+    local shared_test_failed = { false }
+
+    local function record_result(passed, feature, detail)
+        feature = tostring(feature)
+        local previous = results_by_name[feature]
+        if previous == nil or previous.passed or passed == false then
+            results_by_name[feature] = {
+                test = feature,
+                passed = passed == true,
+                detail = detail,
+            }
+        end
+        if not passed then
+            shared_test_failed[1] = true
+            warning("⛔ " .. feature .. (detail and (" failed: " .. tostring(detail)) or ""))
+        else
+            output("✅ " .. feature)
+        end
+        return passed
+    end
+
+    local captures = {
+        options = options,
+        record_result = record_result,
+        output = warning,
+        shared_test_failed = shared_test_failed,
+        make_probe_value = function(minimum, maximum)
+            if type(environment.newproxy) == "function" then return environment.newproxy(true) end
+            return math.random(minimum or 0, maximum or 2^30)
+        end,
+    }
+
+    for _, specification in ipairs(TEST_PLAN) do
+        local features = copy_array(specification.features or { specification.test })
+        local succeeded, error_message = pcall(specification.run, environment, captures)
+        if not succeeded then
+            for _, feature in ipairs(features) do
+                record_result(false, feature, "The function failed to be tested: " .. tostring(error_message))
+            end
+        else
+            for _, feature in ipairs(features) do
+                if results_by_name[feature] == nil then
+                    record_result(true, feature)
+                end
+            end
+        end
+    end
+
+    local passed_count, failed_count = 0, 0
+    for _, result in pairs(results_by_name) do
+        if result.passed then passed_count = passed_count + 1 else failed_count = failed_count + 1 end
+    end
+    local evaluated_count = passed_count + failed_count
+    local rate = evaluated_count > 0 and math.floor((passed_count / evaluated_count) * 100 + 0.5) or 0
+    local elapsed_seconds = math.floor((clock() - started_at) * 100) / 100
+
+    print("Tested with a " .. rate .. "% success rate (" .. passed_count .. " out of " .. evaluated_count .. ")")
+    print("This gay test was made by zenV2")
+    print("Finished the gay test in " .. tostring(elapsed_seconds) .. " seconds")
+
+    return results_by_name, not shared_test_failed[1]
+end
+
+run_gay_suite((getgenv and getgenv()) or _G)
