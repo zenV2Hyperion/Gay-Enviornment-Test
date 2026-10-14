@@ -1,8 +1,10 @@
 # Changelog
 
-## [1.0.0]
+## [1.1.0]
 
 ### Added
+
+#### Reflection
 
 - `getprotohash` — verifies the function returns a string hash for a given callback.
 - `getstackframe` — verifies the function returns a table or nil at a given stack level.
@@ -15,8 +17,19 @@
 - `getthreadcapacity` — verifies the function returns a number.
 - `dumpregisters` — verifies the function returns a table of registers.
 
+#### Scripts
+
+- `getscriptthreadid` — verifies the function returns the thread ID of a running script as a number.
+- `getscriptexecutiontime` — verifies the function returns how long a script has been executing, in seconds.
+- `getscriptsourcemap` — verifies the function returns a source map table for a decompiled script.
+- `isscriptpaused` — verifies the function returns whether a running script is paused.
+- `pausescript` — verifies the function pauses a running script without erroring.
+- `resumescript` — verifies the function resumes a previously paused script without erroring.
+- `getscriptparentmodule` — verifies the function returns the parent module of a script, or `nil`.
+- `getscriptexecutioncontext` — verifies the function returns the execution context of a script.
+- `getscriptcallstack` — verifies the function returns the call stack of a script as a table.
+- `getscriptthreadstate` — verifies the function returns the current state of a script's thread.
+
 ### Notes
 
-- Alias features (`debug.isuntouched`, `debug.setuntouched`, `getpcdprop`) are annotated with `(alias)` in the pass output.
-- All test functions check that the target global exists before calling it, producing a `Function is missing` diagnostic instead of a raw Lua error.
-- Summary line reports the success rate, author, and elapsed time.
+- All script-related tests use a shared `find_first_running_script` helper to locate a suitable fixture, falling back to `getrunningscripts` when the LocalPlayer's `Animate` script is unavailable.
