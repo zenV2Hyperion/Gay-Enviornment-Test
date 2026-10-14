@@ -29,7 +29,7 @@ If a function doesn't exist at all, you get a clean `Function is missing` messag
 
 ## Checking your environment
 
-Paste the suite into your executor and execute it. That's it. No arguments, no setup.
+Paste the suite into your executor and execute it
 
 Or just loadstring it:
 
