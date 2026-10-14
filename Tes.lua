@@ -14,6 +14,23 @@ local function safe_destroy(object)
     if object and object.Destroy then pcall(function() object:Destroy() end) end
 end
 
+local function find_first_running_script(environment)
+    local players = environment.game:GetService("Players")
+    local local_player = players.LocalPlayer
+    if local_player and local_player.Character then
+        local animate = local_player.Character:FindFirstChild("Animate")
+        if animate and animate:IsA("LocalScript") then return animate end
+    end
+    local scripts = environment.getrunningscripts
+    if type(scripts) == "function" then
+        local ok, list = pcall(scripts)
+        if ok and type(list) == "table" and #list > 0 then
+            return list[1]
+        end
+    end
+    return nil
+end
+
 local function test_debug_getsafeenv(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
@@ -339,6 +356,193 @@ local function test_dumpregisters(environment, captures)
     end
 end
 
+local function test_getscriptthreadid(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getscriptthreadid) ~= "function" then
+        return fail_test(captures, "getscriptthreadid", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "getscriptthreadid", "No running script available to test")
+    end
+
+    local id = environment.getscriptthreadid(script_instance)
+    if type(id) ~= "number" then
+        fail_test(captures, "getscriptthreadid", "Did not return a number")
+    end
+end
+
+local function test_getscriptexecutiontime(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getscriptexecutiontime) ~= "function" then
+        return fail_test(captures, "getscriptexecutiontime", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "getscriptexecutiontime", "No running script available to test")
+    end
+
+    local time = environment.getscriptexecutiontime(script_instance)
+    if type(time) ~= "number" then
+        fail_test(captures, "getscriptexecutiontime", "Did not return a number")
+    end
+end
+
+local function test_getscriptsourcemap(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getscriptsourcemap) ~= "function" then
+        return fail_test(captures, "getscriptsourcemap", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "getscriptsourcemap", "No running script available to test")
+    end
+
+    local map = environment.getscriptsourcemap(script_instance)
+    if type(map) ~= "table" then
+        fail_test(captures, "getscriptsourcemap", "Did not return a table")
+    end
+end
+
+local function test_isscriptpaused(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.isscriptpaused) ~= "function" then
+        return fail_test(captures, "isscriptpaused", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "isscriptpaused", "No running script available to test")
+    end
+
+    if type(environment.isscriptpaused(script_instance)) ~= "boolean" then
+        fail_test(captures, "isscriptpaused", "Did not return a boolean")
+    end
+end
+
+local function test_pausescript(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.pausescript) ~= "function" then
+        return fail_test(captures, "pausescript", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "pausescript", "No running script available to test")
+    end
+
+    if not pcall(environment.pausescript, script_instance) then
+        fail_test(captures, "pausescript", "Threw an error when pausing a script")
+    end
+end
+
+local function test_resumescript(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.resumescript) ~= "function" then
+        return fail_test(captures, "resumescript", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "resumescript", "No running script available to test")
+    end
+
+    if not pcall(environment.resumescript, script_instance) then
+        fail_test(captures, "resumescript", "Threw an error when resuming a script")
+    end
+end
+
+local function test_getscriptparentmodule(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getscriptparentmodule) ~= "function" then
+        return fail_test(captures, "getscriptparentmodule", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "getscriptparentmodule", "No running script available to test")
+    end
+
+    local result = environment.getscriptparentmodule(script_instance)
+    if type(result) ~= "userdata" and type(result) ~= "nil" then
+        fail_test(captures, "getscriptparentmodule", "Did not return an Instance or nil")
+    end
+end
+
+local function test_getscriptexecutioncontext(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getscriptexecutioncontext) ~= "function" then
+        return fail_test(captures, "getscriptexecutioncontext", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "getscriptexecutioncontext", "No running script available to test")
+    end
+
+    local context = environment.getscriptexecutioncontext(script_instance)
+    if type(context) ~= "string" then
+        fail_test(captures, "getscriptexecutioncontext", "Did not return a string")
+    end
+end
+
+local function test_getscriptcallstack(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getscriptcallstack) ~= "function" then
+        return fail_test(captures, "getscriptcallstack", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "getscriptcallstack", "No running script available to test")
+    end
+
+    local stack = environment.getscriptcallstack(script_instance)
+    if type(stack) ~= "table" then
+        fail_test(captures, "getscriptcallstack", "Did not return a table")
+    end
+end
+
+local function test_getscriptthreadstate(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getscriptthreadstate) ~= "function" then
+        return fail_test(captures, "getscriptthreadstate", "Function is missing")
+    end
+
+    local script_instance = find_first_running_script(environment)
+    if not script_instance then
+        return fail_test(captures, "getscriptthreadstate", "No running script available to test")
+    end
+
+    local state = environment.getscriptthreadstate(script_instance)
+    if type(state) ~= "string" then
+        fail_test(captures, "getscriptthreadstate", "Did not return a string")
+    end
+end
+
 local TEST_PLAN = {
     { test = "debug.getsafeenv", run = test_debug_getsafeenv, features = { "debug.getsafeenv", "debug.isuntouched" } },
     { test = "debug.setsafeenv", run = test_debug_setsafeenv, features = { "debug.setsafeenv", "debug.setuntouched" } },
@@ -360,6 +564,16 @@ local TEST_PLAN = {
     { test = "getluauheapusage", run = test_getluauheapusage },
     { test = "getthreadcapacity", run = test_getthreadcapacity },
     { test = "dumpregisters", run = test_dumpregisters },
+    { test = "getscriptthreadid", run = test_getscriptthreadid },
+    { test = "getscriptexecutiontime", run = test_getscriptexecutiontime },
+    { test = "getscriptsourcemap", run = test_getscriptsourcemap },
+    { test = "isscriptpaused", run = test_isscriptpaused },
+    { test = "pausescript", run = test_pausescript },
+    { test = "resumescript", run = test_resumescript },
+    { test = "getscriptparentmodule", run = test_getscriptparentmodule },
+    { test = "getscriptexecutioncontext", run = test_getscriptexecutioncontext },
+    { test = "getscriptcallstack", run = test_getscriptcallstack },
+    { test = "getscriptthreadstate", run = test_getscriptthreadstate },
 }
 
 local function copy_array(values)
