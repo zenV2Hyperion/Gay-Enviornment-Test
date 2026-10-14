@@ -196,3 +196,227 @@ Returns a boolean indicating whether the LocalPlayer is the **network owner** of
 local part = Instance.new("Part")
 print(isnetworkowner(part))
 ```
+
+---
+
+# getprotohash
+
+`Global`
+
+```lua
+function getprotohash(callback: function): string
+```
+
+Returns a **hash string** identifying the proto of a given function.
+
+### Parameters
+
+ * `callback` - The function whose proto hash you want to retrieve.
+
+### Example
+
+```lua
+local hash = getprotohash(print)
+print(hash) --> "a4c1f0e2..."
+```
+
+---
+
+# getstackframe
+
+`Global`
+
+```lua
+function getstackframe(level: number): table?
+```
+
+Returns the **stack frame** at the given level, or `nil` if the level does not exist.
+
+### Parameters
+
+ * `level` - The stack level to inspect. Level 1 is the caller of `getstackframe`.
+
+### Example
+
+```lua
+local frame = getstackframe(1)
+print(frame and frame.source, frame and frame.currentline)
+```
+
+---
+
+# setcapability
+
+`Global`
+
+```lua
+function setcapability(capability: number): ()
+```
+
+Sets the **capability level** of the current thread.
+
+### Parameters
+
+ * `capability` - The new capability level for the calling thread.
+
+### Example
+
+```lua
+setcapability(6)
+print(getcapability()) --> 6
+```
+
+---
+
+# getcapability
+
+`Global`
+
+```lua
+function getcapability(): number
+```
+
+Returns the **capability level** of the calling thread.
+
+### Example
+
+```lua
+print(getcapability()) --> 2
+setcapability(8)
+print(getcapability()) --> 8
+```
+
+---
+
+# replacetable
+
+`Global`
+
+```lua
+function replacetable(target: table, source: table): ()
+```
+
+Replaces the contents of one table with another **in-place**. The original table reference is preserved.
+
+### Parameters
+
+ * `target` - The table whose contents will be overwritten.
+ * `source` - The table whose contents will be copied into `target`.
+
+### Example
+
+```lua
+local original = { 1, 2, 3 }
+local replacement = { 4, 5, 6 }
+replacetable(original, replacement)
+print(original[1]) --> 4
+```
+
+---
+
+# registercallback
+
+`Global`
+
+```lua
+function registercallback(name: string, callback: function): ()
+```
+
+Registers a **named callback** that the executor can invoke later by name.
+
+### Parameters
+
+ * `name` - The unique name to register the callback under.
+ * `callback` - The function to invoke when the callback is triggered.
+
+### Example
+
+```lua
+registercallback("sunc_probe", function()
+    print("callback fired")
+end)
+```
+
+---
+
+# unregistercallback
+
+`Global`
+
+```lua
+function unregistercallback(name: string): ()
+```
+
+Removes a previously registered **callback** by name.
+
+### Parameters
+
+ * `name` - The name of the callback to remove.
+
+### Example
+
+```lua
+unregistercallback("sunc_probe")
+```
+
+---
+
+# getluauheapusage
+
+`Global`
+
+```lua
+function getluauheapusage(): number
+```
+
+Returns the current **Luau heap usage** in bytes.
+
+### Example
+
+```lua
+local usage = getluauheapusage()
+print(usage) --> 1048576
+```
+
+---
+
+# getthreadcapacity
+
+`Global`
+
+```lua
+function getthreadcapacity(): number
+```
+
+Returns the **capacity** of the current thread.
+
+### Example
+
+```lua
+print(getthreadcapacity()) --> 200
+```
+
+---
+
+# dumpregisters
+
+`Global`
+
+```lua
+function dumpregisters(callback: function): table
+```
+
+Returns a table containing the **registers** of a given function's proto.
+
+### Parameters
+
+ * `callback` - The function whose registers you want to dump.
+
+### Example
+
+```lua
+local registers = dumpregisters(function() end)
+for index, value in pairs(registers) do
+    print(index, value)
+end
+```
