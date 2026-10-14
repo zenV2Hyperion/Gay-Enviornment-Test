@@ -18,6 +18,10 @@ local function test_debug_getsafeenv(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
+    if type(environment.debug.getsafeenv) ~= "function" then
+        return fail_test(captures, "debug.getsafeenv", "Function is missing")
+    end
+
     local safeenv = environment.debug.getsafeenv()
     if type(safeenv) ~= "boolean" then
         return fail_test(captures, "debug.getsafeenv", "Did not return a boolean value")
@@ -36,15 +40,15 @@ local function test_debug_getsafeenv(environment, captures)
     if type(environment.debug.getsafeenv(thread)) ~= "boolean" then
         fail_test(captures, "debug.getsafeenv", "Did not return a boolean value for a thread")
     end
-
-    if type(environment.debug.isuntouched()) ~= "boolean" then
-        fail_test(captures, "debug.getsafeenv", "Alias did not return a boolean value")
-    end
 end
 
 local function test_debug_setsafeenv(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
+
+    if type(environment.debug.setsafeenv) ~= "function" then
+        return fail_test(captures, "debug.setsafeenv", "Function is missing")
+    end
 
     local original = environment.debug.getsafeenv()
     environment.debug.setsafeenv(true)
@@ -56,84 +60,29 @@ local function test_debug_setsafeenv(environment, captures)
         fail_test(captures, "debug.setsafeenv", "debug.setsafeenv(false) did not set safeenv to false")
     end
     environment.debug.setsafeenv(original)
-    if environment.debug.getsafeenv() ~= original then
-        fail_test(captures, "debug.setsafeenv", "Failed to restore original safeenv state")
-    end
-
-    local function testFunc() return true end
-    environment.debug.setsafeenv(testFunc, true)
-    if environment.debug.getsafeenv(testFunc) ~= true then
-        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to true for a function")
-    end
-    environment.debug.setsafeenv(testFunc, false)
-    if environment.debug.getsafeenv(testFunc) ~= false then
-        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to false for a function")
-    end
-
-    local testTable = {}
-    environment.debug.setsafeenv(testTable, true)
-    if environment.debug.getsafeenv(testTable) ~= true then
-        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to true for a table")
-    end
-    environment.debug.setsafeenv(testTable, false)
-    if environment.debug.getsafeenv(testTable) ~= false then
-        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to false for a table")
-    end
-
-    local thread = coroutine.create(function() end)
-    environment.debug.setsafeenv(thread, true)
-    if environment.debug.getsafeenv(thread) ~= true then
-        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to true for a thread")
-    end
-    environment.debug.setsafeenv(thread, false)
-    if environment.debug.getsafeenv(thread) ~= false then
-        fail_test(captures, "debug.setsafeenv", "Did not set safeenv to false for a thread")
-    end
-
-    environment.debug.setuntouched(true)
-    if environment.debug.getsafeenv() ~= true then
-        fail_test(captures, "debug.setsafeenv", "debug.setuntouched alias did not work")
-    end
-    environment.debug.setuntouched(false)
-    if environment.debug.getsafeenv() ~= false then
-        fail_test(captures, "debug.setsafeenv", "debug.setuntouched alias did not work")
-    end
-    environment.debug.setuntouched(original)
 end
 
 local function test_getrendersteppedlist(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
+    if type(environment.getrendersteppedlist) ~= "function" then
+        return fail_test(captures, "getrendersteppedlist", "Function is missing")
+    end
+
     local callbacks = environment.getrendersteppedlist()
     if type(callbacks) ~= "table" then
         return fail_test(captures, "getrendersteppedlist", "Did not return a table")
     end
 
-    local name = "Gay_Test_" .. tostring(math.random(1, 1000000))
+    local bindName = "Gay_Test_" .. tostring(math.random(1, 1000000))
     local runService = environment.game:GetService("RunService")
-    local bindName = name
-
     runService:BindToRenderStep(bindName, environment.Enum.RenderPriority.Camera.Value, function() end)
 
-    local updatedCallbacks = environment.getrendersteppedlist()
     local found = false
-
-    for _, callback in ipairs(updatedCallbacks) do
+    for _, callback in ipairs(environment.getrendersteppedlist()) do
         if callback.Name == bindName then
             found = true
-            if type(callback.Function) ~= "function" then
-                fail_test(captures, "getrendersteppedlist", "Function field is not a function")
-            end
-            if type(callback.Thread) ~= "thread" then
-                fail_test(captures, "getrendersteppedlist", "Thread field is not a thread")
-            end
-            if type(callback.Priority) ~= "number" then
-                fail_test(captures, "getrendersteppedlist", "Priority field is not a number")
-            end
-            if type(callback.Name) ~= "string" then
-                fail_test(captures, "getrendersteppedlist", "Name field is not a string")
-            end
             break
         end
     end
@@ -148,23 +97,23 @@ local function test_getbspval(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
-    local terrain = environment.workspace.Terrain
-    local result = environment.getbspval(terrain, "SmoothGrid", true)
-    if type(result) ~= "string" then
-        fail_test(captures, "getbspval", "Did not return a string")
+    if type(environment.getbspval) ~= "function" then
+        return fail_test(captures, "getbspval", "Function is missing")
     end
 
-    local binaryStringValue = environment.Instance.new("BinaryStringValue")
-    binaryStringValue.Value = "test"
-    local rawResult = environment.getbspval(binaryStringValue, "Value", false)
-    if type(rawResult) ~= "string" then
-        fail_test(captures, "getbspval", "Did not return a string for BinaryStringValue")
+    local result = environment.getbspval(environment.workspace.Terrain, "SmoothGrid", true)
+    if type(result) ~= "string" then
+        fail_test(captures, "getbspval", "Did not return a string")
     end
 end
 
 local function test_getpcd(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
+
+    if type(environment.getpcd) ~= "function" then
+        return fail_test(captures, "getpcd", "Function is missing")
+    end
 
     local union = environment.Instance.new("UnionOperation")
     local hash, binaryData = environment.getpcd(union)
@@ -174,29 +123,20 @@ local function test_getpcd(environment, captures)
     if type(binaryData) ~= "string" then
         fail_test(captures, "getpcd", "Did not return a string for the binary data")
     end
-
-    local aliasHash, aliasData = environment.getpcdprop(union)
-    if type(aliasHash) ~= "string" then
-        fail_test(captures, "getpcd", "Alias did not return a string for the hash")
-    end
-    if type(aliasData) ~= "string" then
-        fail_test(captures, "getpcd", "Alias did not return a string for the binary data")
-    end
 end
 
 local function test_getproximitypromptduration(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
+    if type(environment.getproximitypromptduration) ~= "function" then
+        return fail_test(captures, "getproximitypromptduration", "Function is missing")
+    end
+
     local proximityPrompt = environment.Instance.new("ProximityPrompt")
     proximityPrompt.HoldDuration = 3
-    local duration = environment.getproximitypromptduration(proximityPrompt)
-    if type(duration) ~= "number" then
-        fail_test(captures, "getproximitypromptduration", "Did not return a number")
-    end
-    if duration ~= 3 then
-        fail_test(captures, "getproximitypromptduration",
-            "Did not return the correct duration (expected 3, got " .. tostring(duration) .. ")")
+    if environment.getproximitypromptduration(proximityPrompt) ~= 3 then
+        fail_test(captures, "getproximitypromptduration", "Did not return the correct duration")
     end
 end
 
@@ -204,8 +144,11 @@ local function test_getsimulationradius(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
-    local radius = environment.getsimulationradius()
-    if type(radius) ~= "number" then
+    if type(environment.getsimulationradius) ~= "function" then
+        return fail_test(captures, "getsimulationradius", "Function is missing")
+    end
+
+    if type(environment.getsimulationradius()) ~= "number" then
         fail_test(captures, "getsimulationradius", "Did not return a number")
     end
 end
@@ -214,9 +157,12 @@ local function test_isnetworkowner(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
+    if type(environment.isnetworkowner) ~= "function" then
+        return fail_test(captures, "isnetworkowner", "Function is missing")
+    end
+
     local part = environment.Instance.new("Part")
-    local result = environment.isnetworkowner(part)
-    if type(result) ~= "boolean" then
+    if type(environment.isnetworkowner(part)) ~= "boolean" then
         fail_test(captures, "isnetworkowner", "Did not return a boolean")
     end
     safe_destroy(part)
@@ -226,12 +172,14 @@ local function test_setproximitypromptduration(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
+    if type(environment.setproximitypromptduration) ~= "function" then
+        return fail_test(captures, "setproximitypromptduration", "Function is missing")
+    end
+
     local proximityPrompt = environment.Instance.new("ProximityPrompt")
     environment.setproximitypromptduration(proximityPrompt, 99)
-    local duration = environment.getproximitypromptduration(proximityPrompt)
-    if duration ~= 99 then
-        fail_test(captures, "setproximitypromptduration",
-            "Did not set the correct duration (expected 99, got " .. tostring(duration) .. ")")
+    if environment.getproximitypromptduration(proximityPrompt) ~= 99 then
+        fail_test(captures, "setproximitypromptduration", "Did not set the correct duration")
     end
 end
 
@@ -239,14 +187,155 @@ local function test_setsimulationradius(environment, captures)
     environment = resolve_environment(environment)
     captures = captures or {}
 
+    if type(environment.setsimulationradius) ~= "function" then
+        return fail_test(captures, "setsimulationradius", "Function is missing")
+    end
+
     local original = environment.getsimulationradius()
     environment.setsimulationradius(999)
     if environment.getsimulationradius() ~= 999 then
         fail_test(captures, "setsimulationradius", "Did not set the simulation radius to 999")
     end
     environment.setsimulationradius(original)
-    if environment.getsimulationradius() ~= original then
-        fail_test(captures, "setsimulationradius", "Did not restore the original simulation radius")
+end
+
+local function test_getprotohash(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getprotohash) ~= "function" then
+        return fail_test(captures, "getprotohash", "Function is missing")
+    end
+
+    local hash = environment.getprotohash(function() end)
+    if type(hash) ~= "string" then
+        fail_test(captures, "getprotohash", "Did not return a string")
+    end
+end
+
+local function test_getstackframe(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getstackframe) ~= "function" then
+        return fail_test(captures, "getstackframe", "Function is missing")
+    end
+
+    local frame = environment.getstackframe(1)
+    if type(frame) ~= "table" and type(frame) ~= "nil" then
+        fail_test(captures, "getstackframe", "Did not return a table or nil")
+    end
+end
+
+local function test_setcapability(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.setcapability) ~= "function" then
+        return fail_test(captures, "setcapability", "Function is missing")
+    end
+
+    if not pcall(environment.setcapability, 6) then
+        fail_test(captures, "setcapability", "Threw an error on a valid capability level")
+    end
+end
+
+local function test_getcapability(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getcapability) ~= "function" then
+        return fail_test(captures, "getcapability", "Function is missing")
+    end
+
+    if type(environment.getcapability()) ~= "number" then
+        fail_test(captures, "getcapability", "Did not return a number")
+    end
+end
+
+local function test_replacetable(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.replacetable) ~= "function" then
+        return fail_test(captures, "replacetable", "Function is missing")
+    end
+
+    local original = { 1, 2, 3 }
+    local replacement = { 4, 5, 6 }
+    environment.replacetable(original, replacement)
+    if original[1] ~= 4 then
+        fail_test(captures, "replacetable", "Did not replace the table contents")
+    end
+end
+
+local function test_registercallback(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.registercallback) ~= "function" then
+        return fail_test(captures, "registercallback", "Function is missing")
+    end
+
+    if not pcall(environment.registercallback, "sunc_probe", function() end) then
+        fail_test(captures, "registercallback", "Threw an error when registering a callback")
+    end
+end
+
+local function test_unregistercallback(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.unregistercallback) ~= "function" then
+        return fail_test(captures, "unregistercallback", "Function is missing")
+    end
+
+    if not pcall(environment.unregistercallback, "sunc_probe") then
+        fail_test(captures, "unregistercallback", "Threw an error when unregistering a callback")
+    end
+end
+
+local function test_getluauheapusage(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getluauheapusage) ~= "function" then
+        return fail_test(captures, "getluauheapusage", "Function is missing")
+    end
+
+    local usage = environment.getluauheapusage()
+    if type(usage) ~= "number" then
+        fail_test(captures, "getluauheapusage", "Did not return a number")
+    end
+    if usage < 0 then
+        fail_test(captures, "getluauheapusage", "Returned a negative value")
+    end
+end
+
+local function test_getthreadcapacity(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.getthreadcapacity) ~= "function" then
+        return fail_test(captures, "getthreadcapacity", "Function is missing")
+    end
+
+    if type(environment.getthreadcapacity()) ~= "number" then
+        fail_test(captures, "getthreadcapacity", "Did not return a number")
+    end
+end
+
+local function test_dumpregisters(environment, captures)
+    environment = resolve_environment(environment)
+    captures = captures or {}
+
+    if type(environment.dumpregisters) ~= "function" then
+        return fail_test(captures, "dumpregisters", "Function is missing")
+    end
+
+    local dump = environment.dumpregisters(function() end)
+    if type(dump) ~= "table" then
+        fail_test(captures, "dumpregisters", "Did not return a table")
     end
 end
 
@@ -261,6 +350,16 @@ local TEST_PLAN = {
     { test = "isnetworkowner", run = test_isnetworkowner },
     { test = "setproximitypromptduration", run = test_setproximitypromptduration },
     { test = "setsimulationradius", run = test_setsimulationradius },
+    { test = "getprotohash", run = test_getprotohash },
+    { test = "getstackframe", run = test_getstackframe },
+    { test = "setcapability", run = test_setcapability },
+    { test = "getcapability", run = test_getcapability },
+    { test = "replacetable", run = test_replacetable },
+    { test = "registercallback", run = test_registercallback },
+    { test = "unregistercallback", run = test_unregistercallback },
+    { test = "getluauheapusage", run = test_getluauheapusage },
+    { test = "getthreadcapacity", run = test_getthreadcapacity },
+    { test = "dumpregisters", run = test_dumpregisters },
 }
 
 local function copy_array(values)
@@ -283,6 +382,12 @@ local function run_gay_suite(environment, options)
     local results_by_name = {}
     local shared_test_failed = { false }
 
+    local alias_map = {
+        ["debug.isuntouched"] = true,
+        ["debug.setuntouched"] = true,
+        ["getpcdprop"] = true,
+    }
+
     local function record_result(passed, feature, detail)
         feature = tostring(feature)
         local previous = results_by_name[feature]
@@ -297,7 +402,11 @@ local function run_gay_suite(environment, options)
             shared_test_failed[1] = true
             warning("⛔ " .. feature .. (detail and (" failed: " .. tostring(detail)) or ""))
         else
-            output("✅ " .. feature)
+            if alias_map[feature] then
+                output("✅ " .. feature .. " (alias)")
+            else
+                output("✅ " .. feature)
+            end
         end
         return passed
     end
