@@ -4,16 +4,6 @@
 
 ### Added
 
-- `debug.getsafeenv` (alias `debug.isuntouched`) — verifies the function returns a boolean for the current state, functions, tables, and threads.
-- `debug.setsafeenv` (alias `debug.setuntouched`) — verifies the function sets and restores the safeenv flag.
-- `getrendersteppedlist` — verifies the function returns a table of `BindToRenderStep` callbacks with `Function`, `Thread`, `Priority`, and `Name` fields.
-- `getbspval` — verifies the function returns a string for a BinaryString property.
-- `getpcd` (alias `getpcdprop`) — verifies the function returns both a hash and binary data for a `TriangleMeshPart`.
-- `getproximitypromptduration` — verifies the function returns the correct `HoldDuration` of a `ProximityPrompt`.
-- `getsimulationradius` — verifies the function returns the LocalPlayer's simulation radius as a number.
-- `isnetworkowner` — verifies the function returns a boolean for a given instance.
-- `setproximitypromptduration` — verifies the function sets a `ProximityPrompt`'s duration.
-- `setsimulationradius` — verifies the function sets and restores the LocalPlayer's simulation radius.
 - `getprotohash` — verifies the function returns a string hash for a given callback.
 - `getstackframe` — verifies the function returns a table or nil at a given stack level.
 - `setcapability` — verifies the function accepts a capability level without erroring.
